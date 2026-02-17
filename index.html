@@ -149,7 +149,7 @@
 <div id="overlay">[باب الرجوع انغلق]</div>
 
 <div id="top-bar">
-  <textarea id="payload" placeholder="جاري تحميل النص من المصدر الخارجي..."></textarea>
+  <textarea id="payload" placeholder="جاري تحميل النص المتغير من Gist..."></textarea>
   <button id="btn-update">✎ تحديث محلي</button>
   <button id="copy-link" onclick="copyPageLink()">🔗 نسخ الرابط</button>
 </div>
@@ -160,12 +160,12 @@
   <button id="btn-save">💾 حفظ الصورة (PNG)</button>
   <input type="file" id="file-decode" accept="image/png">
   <button onclick="document.getElementById('file-decode').click()">📂 استخراج من صورة</button>
-  <button id="btn-reset">⟲ إعادة تعيين</button>
+  <button id="btn-reset">⟲ إعادة جلب من المصدر</button>
 </div>
 
 <script>
-// --- رابط النص الخارجي (ضع رابط الـ RAW GIST هنا) ---
-const EXTERNAL_GIST_URL = "ضع_رابط_الـ_RAW_هنا";
+// --- الرابط الذي قدمته أنت تم وضعه هنا بنجاح ---
+const EXTERNAL_GIST_URL = "https://gist.githubusercontent.com/tombad8900/f39ab59ef8ccc438c8bb62c5d3d7b6e2/raw/c1f63460f0be7021988d22dcf4dd6b04f0fc3665/Gist";
 
 const canvas = document.getElementById('view');
 const ctx = canvas.getContext('2d', { alpha: false });
@@ -182,7 +182,6 @@ const Engine = {
         bytes.forEach(b => bits += b.toString(2).padStart(8, '0'));
         return bits + "00000000";
     },
-
     inject: (imageData, bits) => {
         const data = imageData.data;
         for (let i = 0; i < bits.length && i < data.length / 4; i++) {
@@ -190,7 +189,6 @@ const Engine = {
         }
         return imageData;
     },
-
     extract: (imageData) => {
         const data = imageData.data;
         let bits = "";
@@ -206,13 +204,8 @@ const Engine = {
             bytes.push(byte);
         }
         if (bytes.length === 0) return "";
-        try {
-            return new TextDecoder().decode(new Uint8Array(bytes));
-        } catch {
-            return "";
-        }
+        try { return new TextDecoder().decode(new Uint8Array(bytes)); } catch { return ""; }
     },
-
     embedPayload: (payload) => {
         renderText(payload);
         let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -221,7 +214,6 @@ const Engine = {
         ctx.putImageData(imageData, 0, 0);
         return true;
     },
-
     extractPayload: () => {
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         return Engine.extract(imageData);
@@ -278,21 +270,16 @@ function updateImage() {
     statusDiv.textContent = "[عرش ∞ – HO-PU ACTIVE] تم التحديث والتضمين";
 }
 
-// --- ميزة الجلب من الرابط الخارجي ---
 async function fetchExternalPayload() {
-    if (EXTERNAL_GIST_URL === "ضع_رابط_الـ_RAW_هنا") {
-        statusDiv.textContent = "[عرش ∞] لم يتم ضبط رابط المصدر الخارجي";
-        return;
-    }
     try {
         const response = await fetch(EXTERNAL_GIST_URL);
         if (response.ok) {
             const text = await response.text();
             payloadInput.value = text;
             updateImage();
-            statusDiv.textContent = "[عرش ∞] تم جلب النواة الخارجية بنجاح";
+            statusDiv.textContent = "[عرش ∞] تم جلب النص المتغير بنجاح";
         } else {
-            statusDiv.textContent = "[عرش ∞] خطأ في الوصول للمصدر";
+            statusDiv.textContent = "[عرش ∞] خطأ في المصدر الخارجي";
         }
     } catch (err) {
         statusDiv.textContent = "[عرش ∞] فشل الاتصال بالنواة";
@@ -316,7 +303,6 @@ document.getElementById('btn-save').onclick = () => {
     link.click();
     statusDiv.textContent = "[عرش ∞] تم حفظ الصورة";
 };
-
 document.getElementById('btn-reset').onclick = fetchExternalPayload;
 
 document.getElementById('file-decode').onchange = (e) => {
@@ -334,27 +320,19 @@ document.getElementById('file-decode').onchange = (e) => {
                 payloadInput.value = extracted;
                 statusDiv.textContent = "[عرش ∞] تم فك التشفير بنجاح";
                 renderText(extracted);
-            } else {
-                statusDiv.textContent = "[عرش ∞] فشل الاستخراج";
-            }
+            } else { statusDiv.textContent = "[عرش ∞] فشل الاستخراج"; }
         };
         img.src = event.target.result;
     };
     reader.readAsDataURL(file);
 };
 
-secretTrigger.onclick = () => {
-    advancedUI.classList.toggle('visible');
-};
-
-window.onresize = () => {
-    updateImage();
-};
-
+secretTrigger.onclick = () => { advancedUI.classList.toggle('visible'); };
+window.onresize = () => { updateImage(); };
 window.onload = () => {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    fetchExternalPayload(); // البدء بجلب النص فوراً
+    fetchExternalPayload();
 };
 </script>
 </body>
