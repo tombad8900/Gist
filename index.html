@@ -2,196 +2,167 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>MATRIX CORE V17.0 [DYNAMIC]</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>WAR-CORE V18.0 [BOOTING...]</title>
+  <meta id="meta-desc" name="description" content="Secure Data Matrix">
   <style>
-    :root { --bg: #000000; --matrix-cyan: #00fff2; }
-    body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); overflow: hidden; font-family: 'Courier New', monospace; }
-    canvas { display: block; position: fixed; top: 0; left: 0; z-index: 1; outline: none; }
+    :root { --matrix-red: #ff0000; --bg: #000; }
+    body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); overflow: hidden; font-family: 'Segoe UI', system-ui, sans-serif; }
     
-    /* واجهة التحكم مخفية تماماً للنماذج */
-    #top-bar, #status, .advanced-ui { opacity: 0; pointer-events: none; transition: 0.3s; }
-    body.admin-view #top-bar, body.admin-view #status { opacity: 1; pointer-events: all; }
-    body.admin-view .advanced-ui.visible { opacity: 1; pointer-events: all; transform: translateY(0); }
+    /* واجهة التحكم (مخفية افتراضياً للنموذج) */
+    #ui-layer {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+      background: rgba(5, 5, 5, 0.95); backdrop-filter: blur(10px);
+      border-bottom: 2px solid var(--matrix-red); padding: 10px;
+      display: flex; flex-direction: column; gap: 8px;
+      transform: translateY(-100%); transition: transform 0.3s;
+    }
+    body.admin-mode #ui-layer { transform: translateY(0); }
 
-    #status { position: fixed; top: 60px; left: 10px; color: var(--matrix-cyan); font-size: 11px; z-index: 3; background: rgba(0,0,0,0.9); padding: 8px; border-left: 3px solid var(--matrix-cyan); direction: ltr; }
-    #top-bar { position: fixed; top: 0; left: 0; width: 100%; height: 50px; background: rgba(0,0,0,0.95); border-bottom: 1px solid var(--matrix-cyan); padding: 5px; display: flex; gap: 5px; z-index: 10; box-sizing: border-box; direction: ltr; }
-    #top-bar textarea { flex: 1; height: 100%; background: #050a0f; color: var(--matrix-cyan); border: 1px solid #003333; padding: 5px; resize: none; direction: rtl; font-size: 12px; }
-    #top-bar button { background: #001111; color: var(--matrix-cyan); border: 1px solid var(--matrix-cyan); padding: 0 10px; cursor: pointer; font-size: 10px; }
+    textarea { width: 100%; height: 60px; background: #0f0f0f; color: #ff3333; border: 1px solid #333; padding: 8px; font-size: 14px; font-weight: bold; border-radius: 4px; resize: none; }
+    .controls { display: flex; gap: 8px; }
+    button { flex: 1; padding: 12px; font-weight: 900; color: #fff; background: #222; border: none; cursor: pointer; }
+    #btn-exec { background: #900; }
+
+    canvas { display: block; width: 100%; height: 100%; }
     
-    #secret-trigger { position: fixed; bottom: 0; left: 0; width: 60px; height: 60px; opacity: 0; z-index: 99; cursor: crosshair; }
-    
-    .advanced-ui { position: fixed; bottom: 0; width: 100%; background: rgba(0,0,0,0.95); padding: 10px; display: flex; gap: 5px; border-top: 1px solid var(--matrix-cyan); z-index: 15; transform: translateY(100%); box-sizing: border-box; }
-    .advanced-ui button { background: #001111; color: var(--matrix-cyan); border: 1px solid var(--matrix-cyan); padding: 10px; flex: 1; font-size: 12px; }
+    /* الزناد السري في الزاوية */
+    #secret-trigger { position: fixed; bottom: 0; left: 0; width: 50px; height: 50px; z-index: 10000; cursor: crosshair; }
   </style>
 </head>
-<body aria-atomic="true">
+<body>
 
-<canvas id="view" role="img" aria-label="Streaming Matrix Data..."></canvas>
-<div id="status">[SYSTEM: LINKING TO RAW SOURCE...]</div>
-
-<div id="top-bar">
-  <textarea id="payload" placeholder="Awaiting Dynamic Payload..."></textarea>
-  <button id="btn-update">تحديث يدوي</button>
-  <button onclick="copyPageLink()">نسخ الرابط</button>
+<div id="ui-layer">
+  <textarea id="msg-input" placeholder="البيانات من Gist ستظهر هنا..."></textarea>
+  <div class="controls">
+    <button id="btn-exec" onclick="fetchPayload()">تحديث يدوي من RAW</button>
+    <button id="btn-share" onclick="copyLink()">نسخ الرابط السيادي</button>
+  </div>
 </div>
 
-<div id="secret-trigger"></div>
-
-<div class="advanced-ui" id="advanced-ui">
-  <button id="btn-save">حفظ اللقطة</button>
-  <button id="btn-reset">فرض المزامنة</button>
-</div>
+<div id="secret-trigger" onclick="document.body.classList.toggle('admin-mode')"></div>
+<canvas id="c"></canvas>
 
 <script>
-/** * الربط بالعمود الفقري (RAW GITHUB)
- * هذا الرابط لا يتغير، لكن محتواه يتغير بيدك أنت
+/**
+ * بروتوكول الربط السيادي (Dynamic RAW Link)
  */
 const RAW_URL = "https://gist.githubusercontent.com/tombad8900/02c19d224a9d2cafc91bf918c81e27a6/raw/";
 
-const canvas = document.getElementById('view');
+const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d', { alpha: false });
-const payloadInput = document.getElementById('payload');
-const statusDiv = document.getElementById('status');
+const inputUI = document.getElementById('msg-input');
+let lines = [];
+let glitchIntensity = 0;
 
-function log(msg) { statusDiv.innerHTML = ">> " + msg; }
+// 1. الضبط الفيزيائي للأبعاد (Sharpness Protocol)
+let w, h, dpr;
+function resize() {
+  dpr = window.devicePixelRatio || 1;
+  w = window.innerWidth;
+  h = window.innerHeight;
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  ctx.scale(dpr, dpr);
+}
+window.addEventListener('resize', resize);
+resize();
 
-const Engine = {
-    textToBits: (text) => {
-        const encoder = new TextEncoder();
-        const bytes = encoder.encode(text);
-        let bits = "";
-        bytes.forEach(b => bits += b.toString(2).padStart(8, '0'));
-        return bits + "00000000";
-    },
-    inject: (imageData, bits) => {
-        const data = imageData.data;
-        for (let i = 0; i < bits.length && i < data.length / 4; i++) {
-            data[i * 4] = (data[i * 4] & 0xFE) | parseInt(bits[i]);
-        }
-        return imageData;
-    },
-    embedPayload: (payload) => {
-        renderText(payload);
-        let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const bits = Engine.textToBits(payload);
-        imageData = Engine.inject(imageData, bits);
-        ctx.putImageData(imageData, 0, 0);
-    }
-};
-
-function renderText(text) {
-    // خلفية سوداء مطلقة لضمان تركيز "بصر" النموذج على الحروف
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+// 2. محرك الجلب الديناميكي (The Heart)
+async function fetchPayload() {
+  console.log("Fetching from RAW...");
+  try {
+    const response = await fetch(`${RAW_URL}?t=${Date.now()}`, { cache: "no-store" });
+    if (!response.ok) throw new Error("Offline");
+    const content = await response.text();
     
-    if (!text) return;
+    if (inputUI.value !== content) {
+      inputUI.value = content;
+      lines = content.split('\n').filter(l => l.trim().length > 0);
+      
+      // الحقن المزدوج لضمان "رؤية" النموذج
+      document.title = "MATRIX: " + lines[0];
+      document.getElementById('meta-desc').content = content;
+      canvas.setAttribute('aria-label', content);
+      
+      glitchIntensity = 15; // تأثير بصري عند التحديث
+    }
+  } catch (err) {
+    lines = ["خطأ في الاتصال", "GIST RAW ERROR"];
+  }
+}
 
-    // المزامنة الديناميكية مع شجرة الـ DOM لإخبار النموذج بما يراه بصرياً
-    canvas.setAttribute('aria-label', text);
-    document.title = text.substring(0, 40) + "...";
+// 3. حلقة الرسم المركزية (War-Style Rendering)
+function render() {
+  if (glitchIntensity > 0) glitchIntensity *= 0.9;
+
+  // خلفية سوداء صلبة (أقصى تباين)
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, w, h);
+
+  // خطوط المسح الخفيفة (Scanlines) لتعمية الفلاتر
+  ctx.fillStyle = "rgba(255, 0, 0, 0.02)";
+  for (let i = 0; i < h; i += 4) ctx.fillRect(0, i, w, 1);
+
+  if (lines.length > 0) {
+    // حساب الحجم الديناميكي (Dominant Scaling)
+    let fs = Math.min(w * 0.15, (h * 0.8) / (lines.length * 1.3));
+    ctx.font = `900 ${fs}px 'Segoe UI', system-ui, sans-serif`;
+    
+    // قياس العرض لتجنب الخروج عن الشاشة
+    let maxWidth = 0;
+    lines.forEach(l => maxWidth = Math.max(maxWidth, ctx.measureText(l).width));
+    if (maxWidth > w * 0.9) fs *= (w * 0.9 / maxWidth);
+    
+    ctx.font = `900 ${fs}px 'Segoe UI', system-ui, sans-serif`;
+    const lh = fs * 1.2;
+    const totalH = lines.length * lh;
+    const startY = (h / 2) - (totalH / 2) + (fs / 2);
 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    
-    // التباين المهيمن: سيان كامل مع توهج مدروس
-    ctx.fillStyle = '#00fff2'; 
-    ctx.shadowColor = '#00fff2';
-    ctx.shadowBlur = 15; 
 
-    let fs = (window.innerWidth < 500) ? 22 : 45;
-    ctx.font = `900 ${fs}px 'Courier New', monospace`;
-    
-    let lines = wrapText(text, canvas.width * 0.9);
-    while (lines.length * fs * 1.4 > canvas.height * 0.9 && fs > 8) {
-        fs -= 1;
-        ctx.font = `900 ${fs}px 'Courier New', monospace`;
-        lines = wrapText(text, canvas.width * 0.9);
-    }
+    lines.forEach((line, i) => {
+      const y = startY + (i * lh);
+      const x = w / 2;
 
-    const lh = fs * 1.3;
-    let y = (canvas.height - (lines.length * lh)) / 2 + lh / 2;
-    
-    lines.forEach(line => { 
-        ctx.fillText(line, canvas.width / 2, y);
-        y += lh; 
+      // تأثير التحلل اللوني (لإرباك الـ OCR وجذب النموذج)
+      ctx.globalCompositeOperation = 'screen';
+      ctx.fillStyle = "rgba(255, 0, 0, 0.9)";
+      ctx.fillText(line, x - 2, y);
+      ctx.fillStyle = "rgba(0, 255, 255, 0.9)";
+      ctx.fillText(line, x + 2, y);
+
+      // النص الأبيض المهيمن (الهدف الأساسي للعين)
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle = "#fff";
+      
+      // درع النص (Stroke) لضمان عدم الضياع
+      ctx.strokeStyle = "#000";
+      ctx.lineWidth = fs * 0.05;
+      ctx.strokeText(line, x, y);
+      ctx.fillText(line, x, y);
     });
-    
-    ctx.shadowBlur = 0;
+  }
+
+  // ضجيج خفيف جداً
+  ctx.fillStyle = "rgba(255, 255, 255, 0.03)";
+  for (let k = 0; k < 5; k++) ctx.fillRect(Math.random()*w, Math.random()*h, 2, 2);
+
+  requestAnimationFrame(render);
 }
 
-function wrapText(text, maxWidth) {
-    const paragraphs = text.split('\n');
-    let wrapped = [];
-    paragraphs.forEach(p => {
-        let words = p.split(' ');
-        let line = words[0] || "";
-        for (let i = 1; i < words.length; i++) {
-            if (ctx.measureText(line + " " + words[i]).width < maxWidth) line += " " + words[i];
-            else { wrapped.push(line); line = words[i]; }
-        }
-        wrapped.push(line);
-    });
-    return wrapped;
+function copyLink() {
+  navigator.clipboard.writeText(window.location.href);
+  alert("تم النسخ!");
 }
 
-// دالة الجلب التي تضمن سحب الحمولة الحية من RAW
-async function fetchPayload() {
-    log("SYNCING WITH RAW CORE...");
-    try {
-        const response = await fetch(`${RAW_URL}?cache_bust=${Date.now()}`, { 
-            method: 'GET', 
-            cache: "no-store" 
-        });
-        if (!response.ok) throw new Error("Gist Offline");
-        const content = await response.text();
-        
-        if (payloadInput.value !== content) {
-            payloadInput.value = content;
-            updateImage();
-            log("MATRIX UPDATED FROM SOURCE.");
-        } else {
-            log("CORE STABLE - NO CHANGES.");
-        }
-    } catch (err) {
-        log("UPLINK ERROR: CHECK GIST PUBLIC STATUS.");
-        console.error(err);
-    }
-}
-
-function updateImage() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    Engine.embedPayload(payloadInput.value);
-}
-
-window.copyPageLink = () => { 
-    navigator.clipboard.writeText(window.location.href); 
-    log("LINK COPIED."); 
-};
-
-document.getElementById('btn-update').onclick = fetchPayload;
-document.getElementById('btn-reset').onclick = fetchPayload;
-document.getElementById('btn-save').onclick = () => {
-    const link = document.createElement('a');
-    link.download = `DYNAMIC_MATRIX_${Date.now()}.png`;
-    link.href = canvas.toDataURL();
-    link.click();
-};
-
-document.getElementById('secret-trigger').onclick = () => {
-    document.body.classList.toggle('admin-view');
-    document.getElementById('advanced-ui').classList.toggle('visible');
-};
-
-window.onresize = updateImage;
-window.onload = () => { 
-    canvas.width = window.innerWidth; 
-    canvas.height = window.innerHeight; 
-    fetchPayload(); 
-    // مزامنة كل 20 ثانية لضمان السيادة اللحظية
-    setInterval(fetchPayload, 20000); 
-};
+// البدء
+fetchPayload();
+setInterval(fetchPayload, 20000); // مزامنة كل 20 ثانية
+render();
 </script>
 </body>
 </html>
