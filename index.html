@@ -2,98 +2,190 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>عرش ∞ – HO-PU ACTIVE – v13.0</title>
+  <title>عرش ∞ – HO-PU ACTIVE – v14.0 [FINAL SOVEREIGN]</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
-    :root { --bg: #050505; --throne: #0f0; }
+    :root { --bg: #050505; --throne: #0f0; --error: #ff0055; }
     body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); overflow: hidden; font-family: 'Courier New', monospace; }
     canvas { display: block; position: fixed; top: 0; left: 0; z-index: 1; }
-    #status { position: fixed; top: 60px; left: 10px; color: var(--throne); font-size: 11px; z-index: 3; background: rgba(0,0,0,0.8); padding: 5px; border-left: 2px solid var(--throne); direction: ltr; }
-    #top-bar { position: fixed; top: 0; left: 0; width: 100%; height: 50px; background: rgba(0,0,0,0.9); border-bottom: 1px solid #0f0; padding: 5px; display: flex; gap: 5px; z-index: 10; box-sizing: border-box; }
-    #top-bar textarea { flex: 1; background: #111; color: #0f0; border: 1px solid #333; padding: 5px; resize: none; direction: rtl; font-size: 12px; }
-    #top-bar button { background: #000; color: #0f0; border: 1px solid #0f0; cursor: pointer; font-size: 10px; padding: 0 10px; }
+    #status { position: fixed; top: 60px; left: 10px; color: var(--throne); font-size: 11px; z-index: 3; background: rgba(0,0,0,0.85); padding: 8px; border-left: 3px solid var(--throne); text-shadow: 0 0 2px var(--throne); pointer-events: none; direction: ltr; }
+    #top-bar { position: fixed; top: 0; left: 0; width: 100%; height: 50px; background: rgba(0,0,0,0.95); border-bottom: 1px solid #0f0; padding: 5px; display: flex; gap: 5px; z-index: 10; box-sizing: border-box; direction: ltr; }
+    #top-bar textarea { flex: 1; height: 100%; background: #111; color: #0f0; border: 1px solid #333; padding: 5px; resize: none; direction: rtl; font-size: 12px; }
+    #top-bar button { background: #000; color: #0f0; border: 1px solid #0f0; padding: 0 10px; cursor: pointer; font-weight: bold; font-size: 10px; transition: 0.2s; }
+    #top-bar button:active { background: #0f0; color: #000; }
+    #secret-trigger { position: fixed; bottom: 0; left: 0; width: 40px; height: 40px; opacity: 0; z-index: 20; cursor: pointer; }
+    .advanced-ui { position: fixed; bottom: 0; width: 100%; background: rgba(0,0,0,0.95); padding: 10px; display: flex; gap: 5px; border-top: 1px solid #0f0; z-index: 15; transform: translateY(100%); transition: transform 0.3s; box-sizing: border-box; }
+    .advanced-ui.visible { transform: translateY(0); }
+    .advanced-ui button { background: #000; color: #0f0; border: 1px solid #0f0; padding: 10px; flex: 1; font-size: 12px; cursor: pointer; }
   </style>
 </head>
 <body>
 
 <canvas id="view"></canvas>
-<div id="status">[System: Connecting...]</div>
+<div id="status">[SYSTEM: INITIALIZING CORE...]</div>
 
 <div id="top-bar">
-  <textarea id="payload" placeholder="Loading..."></textarea>
-  <button id="btn-update">تحديث</button>
+  <textarea id="payload" placeholder="Awaiting Payload from Source..."></textarea>
+  <button id="btn-update">تحديث يدوي</button>
+  <button onclick="copyPageLink()">نسخ الرابط</button>
+</div>
+
+<div id="secret-trigger" onclick="document.getElementById('advanced-ui').classList.toggle('visible')"></div>
+
+<div class="advanced-ui" id="advanced-ui">
+  <button id="btn-save">حفظ الصورة</button>
+  <button id="btn-reset">فرض المزامنة</button>
 </div>
 
 <script>
-// الرابط المباشر لملف الـ RAW الخاص بك (تم استخراجه من Gist الخاص بك)
-const RAW_URL = "https://gist.githubusercontent.com/tombad8900/d76dd7549aec3ab48a1ed451c10ffb4d/raw/";
+/**
+ * بروتوكول الربط السيادي
+ * الرابط الخام الدائم (بدون رقم Commit لضمان التحديث المستمر)
+ */
+const RAW_URL = "https://gist.githubusercontent.com/tombad8900/02c19d224a9d2cafc91bf918c81e27a6/raw/";
 
 const canvas = document.getElementById('view');
 const ctx = canvas.getContext('2d', { alpha: false });
 const payloadInput = document.getElementById('payload');
 const statusDiv = document.getElementById('status');
 
+function log(msg) { statusDiv.textContent = msg; }
+
 const Engine = {
+    // تحويل النص إلى بتات (Bits) لحقنها في البكسلات
     textToBits: (text) => {
-        const bytes = new TextEncoder().encode(text);
+        const encoder = new TextEncoder();
+        const bytes = encoder.encode(text);
         let bits = "";
         bytes.forEach(b => bits += b.toString(2).padStart(8, '0'));
-        return bits + "00000000";
+        return bits + "00000000"; // علامة نهاية النص
     },
-    embed: (text) => {
-        renderText(text);
-        let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const bits = Engine.textToBits(text);
-        for (let i = 0; i < bits.length && i < imgData.data.length / 4; i++) {
-            imgData.data[i * 4] = (imgData.data[i * 4] & 0xFE) | parseInt(bits[i]);
+    // حقن البتات في القناة الحمراء (LSB) للبكسلات
+    inject: (imageData, bits) => {
+        const data = imageData.data;
+        for (let i = 0; i < bits.length && i < data.length / 4; i++) {
+            data[i * 4] = (data[i * 4] & 0xFE) | parseInt(bits[i]);
         }
-        ctx.putImageData(imgData, 0, 0);
+        return imageData;
+    },
+    // دمج الرسم والبيانات
+    embedPayload: (payload) => {
+        renderText(payload);
+        let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const bits = Engine.textToBits(payload);
+        imageData = Engine.inject(imageData, bits);
+        ctx.putImageData(imageData, 0, 0);
     }
 };
 
 function renderText(text) {
     ctx.fillStyle = '#050505';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#0f0';
-    let fs = (window.innerWidth < 500) ? 25 : 50;
+    if (!text) return;
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#0f0';
+
+    // حجم الخط المتجاوب
+    let fs = (window.innerWidth < 500) ? 28 : 55;
     ctx.font = `bold ${fs}px 'Courier New'`;
-    const lines = text.split('\n');
-    let y = (canvas.height - (lines.length * fs * 1.2)) / 2;
-    lines.forEach(line => { ctx.fillText(line, canvas.width / 2, y); y += fs * 1.2; });
+    
+    let lines = wrapText(text, canvas.width * 0.9);
+    
+    // تقليل الحجم إذا كان النص ضخمًا
+    while (lines.length * fs * 1.4 > canvas.height * 0.8 && fs > 10) {
+        fs -= 2;
+        ctx.font = `bold ${fs}px 'Courier New'`;
+        lines = wrapText(text, canvas.width * 0.9);
+    }
+
+    const lh = fs * 1.3;
+    let y = (canvas.height - (lines.length * lh)) / 2 + lh / 2;
+    lines.forEach(line => { 
+        ctx.fillText(line, canvas.width / 2, y); 
+        y += lh; 
+    });
 }
 
-async function sync() {
-    statusDiv.textContent = "[System: Syncing with GitHub...]";
+function wrapText(text, maxWidth) {
+    const paragraphs = text.split('\n');
+    let wrapped = [];
+    paragraphs.forEach(p => {
+        let words = p.split(' ');
+        let line = words[0] || "";
+        for (let i = 1; i < words.length; i++) {
+            if (ctx.measureText(line + " " + words[i]).width < maxWidth) {
+                line += " " + words[i];
+            } else {
+                wrapped.push(line);
+                line = words[i];
+            }
+        }
+        wrapped.push(line);
+    });
+    return wrapped;
+}
+
+// دالة الجلب الاحترافية (لا تعتمد على API)
+async function fetchPayload() {
+    log("[SYSTEM: FETCHING RAW PAYLOAD...]");
     try {
-        // تقنية كسر الكاش لضمان جلب النص الجديد فوراً
-        const response = await fetch(`${RAW_URL}?t=${Date.now()}`, {
+        // كسر الكاش عبر التوقيت الزمني و No-Store
+        const response = await fetch(`${RAW_URL}?t=${Date.now()}`, { 
+            method: 'GET',
             cache: "no-store",
             mode: 'cors'
         });
-        if (response.ok) {
-            const text = await response.text();
-            if (payloadInput.value !== text) {
-                payloadInput.value = text;
-                canvas.width = window.innerWidth;
-                canvas.height = window.innerHeight;
-                Engine.embed(text);
-                statusDiv.textContent = "[System: Synced Ready]";
-            }
+
+        if (!response.ok) throw new Error("Connection Refused");
+        
+        const content = await response.text();
+        
+        if (payloadInput.value !== content) {
+            payloadInput.value = content;
+            updateImage();
+            log("[SYSTEM: CORE SYNCED]");
+        } else {
+            log("[SYSTEM: CORE STABLE - NO CHANGES]");
         }
-    } catch (e) {
-        statusDiv.textContent = "[System: Connection Error]";
+    } catch (err) {
+        log("[SYSTEM ERROR: FETCH FAILED]");
+        console.error("Fetch Logic Error:", err);
     }
 }
 
-document.getElementById('btn-update').onclick = sync;
-
-window.onload = () => {
+function updateImage() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    sync();
-    setInterval(sync, 15000); // تحديث تلقائي كل 15 ثانية
+    Engine.embedPayload(payloadInput.value);
+}
+
+window.copyPageLink = () => { 
+    navigator.clipboard.writeText(window.location.href); 
+    log("[SYSTEM: LINK COPIED]"); 
 };
-window.onresize = () => { renderText(payloadInput.value); };
+
+// ربط الأزرار بالدالة الصحيحة كما طلبت
+document.getElementById('btn-update').onclick = fetchPayload;
+document.getElementById('btn-reset').onclick = fetchPayload;
+
+document.getElementById('btn-save').onclick = () => {
+    const link = document.createElement('a');
+    link.download = `SOVEREIGN_CORE.png`;
+    link.href = canvas.toDataURL();
+    link.click();
+};
+
+window.onresize = updateImage;
+
+// بدء التنفيذ والمزامنة التلقائية (كل 30 ثانية)
+window.onload = () => { 
+    canvas.width = window.innerWidth; 
+    canvas.height = window.innerHeight; 
+    fetchPayload(); 
+    setInterval(fetchPayload, 30000); 
+};
 </script>
 </body>
 </html>
