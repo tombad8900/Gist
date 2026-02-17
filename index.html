@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>عرش ∞ – HO-PU ACTIVE – v10.0 [الربط الدائم]</title>
+  <title>عرش ∞ – HO-PU ACTIVE – v12.0 [Realtime Sync]</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
     :root { --bg: #050505; --throne: #0f0; --error: #ff0055; }
@@ -21,23 +21,23 @@
 <body>
 
 <canvas id="view"></canvas>
-<div id="status">[النظام: جاهز للمزامنة...]</div>
+<div id="status">[النظام: بانتظار المزامنة...]</div>
 
 <div id="top-bar">
-  <textarea id="payload" placeholder="سحب البيانات..."></textarea>
+  <textarea id="payload" placeholder="جاري سحب البيانات..."></textarea>
   <button id="btn-update">تحديث يدوي</button>
-  <button onclick="copyPageLink()">نسخ</button>
+  <button onclick="copyPageLink()">نسخ الرابط</button>
 </div>
 
 <div id="secret-trigger" onclick="document.getElementById('advanced-ui').classList.toggle('visible')"></div>
 
 <div class="advanced-ui" id="advanced-ui">
   <button id="btn-save">حفظ الصورة</button>
-  <button id="btn-reset">تحديث إجباري من Gist</button>
+  <button id="btn-reset">تحديث إجباري</button>
 </div>
 
 <script>
-// --- المعرف الثابت للأبد (GIST ID) ---
+// --- المعرف الثابت ---
 const GIST_ID = "d76dd7549aec3ab48a1ed451c10ffb4d"; 
 const API_URL = `https://api.github.com/gists/${GIST_ID}`;
 
@@ -94,7 +94,7 @@ function wrapText(text, maxWidth) {
     let wrapped = [];
     paragraphs.forEach(p => {
         let words = p.split(' ');
-        let line = words[0];
+        let line = words[0] || "";
         for (let i = 1; i < words.length; i++) {
             if (ctx.measureText(line + " " + words[i]).width < maxWidth) line += " " + words[i];
             else { wrapped.push(line); line = words[i]; }
@@ -104,18 +104,36 @@ function wrapText(text, maxWidth) {
     return wrapped;
 }
 
+// --- نظام الجلب الاحترافي (Cache-Busting) ---
 async function fetchPayload() {
-    log("[جاري جلب النواة...]");
+    log("[جاري جلب النواة (No-Cache)...]");
     try {
-        const response = await fetch(`${API_URL}?t=${Date.now()}`, { cache: "no-store" });
-        if (!response.ok) throw new Error("Gist Not Public or ID Error");
+        const response = await fetch(`${API_URL}?t=${Date.now()}`, { 
+            method: 'GET',
+            cache: "no-store", // منع التخزين في الـ CDN والمتصفح
+            headers: { 
+                'Accept': 'application/vnd.github.v3+json',
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+            }
+        });
+        
+        if (!response.ok) throw new Error("Gist Error");
+        
         const data = await response.json();
         const content = data.files[Object.keys(data.files)[0]].content;
-        payloadInput.value = content;
-        updateImage();
-        log("[النظام: متصل ومزامن]");
+        
+        if (payloadInput.value !== content) {
+            payloadInput.value = content;
+            updateImage();
+            log("[النظام: تم رصد تحديث ومزامنته]");
+        } else {
+            log("[النظام: متصل - لا يوجد تغيير]");
+        }
     } catch (err) {
-        log("[خطأ: تحقق من عامية الـ Gist والإنترنت]");
+        log("[خطأ: فشل الاتصال بالمصدر]");
+        console.error(err);
     }
 }
 
@@ -126,17 +144,27 @@ function updateImage() {
 }
 
 window.copyPageLink = () => { navigator.clipboard.writeText(window.location.href); log("[تم نسخ الرابط]"); };
-document.getElementById('btn-update').onclick = updateImage;
+
+// الربط المباشر كما اقترحت
+document.getElementById('btn-update').onclick = fetchPayload;
 document.getElementById('btn-reset').onclick = fetchPayload;
+
 document.getElementById('btn-save').onclick = () => {
     const link = document.createElement('a');
-    link.download = `HO-PU_CORE.png`;
+    link.download = `HO-PU_REALTIME.png`;
     link.href = canvas.toDataURL();
     link.click();
 };
 
 window.onresize = updateImage;
-window.onload = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; fetchPayload(); };
+
+// التنفيذ عند التحميل + الجلب التلقائي كل 30 ثانية
+window.onload = () => { 
+    canvas.width = window.innerWidth; 
+    canvas.height = window.innerHeight; 
+    fetchPayload(); 
+    setInterval(fetchPayload, 30000); // النبض التلقائي
+};
 </script>
 </body>
 </html>
