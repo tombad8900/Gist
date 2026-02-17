@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>عرش ∞ – HO-PU ACTIVE – v5.0 [واجهة ظاهرة]</title>
+  <title>عرش ∞ – HO-PU ACTIVE – v6.0 [Live Sync]</title>
   <style>
     :root { 
       --bg: #050505; 
@@ -145,11 +145,11 @@
 <body>
 
 <canvas id="view"></canvas>
-<div id="status">[عرش ∞ – جاري الاتصال بالنواة...]</div>
+<div id="status">[عرش ∞ – بدء الاتصال المؤمن...]</div>
 <div id="overlay">[باب الرجوع انغلق]</div>
 
 <div id="top-bar">
-  <textarea id="payload" placeholder="جاري تحميل النص المتغير من Gist..."></textarea>
+  <textarea id="payload" placeholder="انتظر... جاري سحب الأوامر من النواة..."></textarea>
   <button id="btn-update">✎ تحديث محلي</button>
   <button id="copy-link" onclick="copyPageLink()">🔗 نسخ الرابط</button>
 </div>
@@ -160,12 +160,13 @@
   <button id="btn-save">💾 حفظ الصورة (PNG)</button>
   <input type="file" id="file-decode" accept="image/png">
   <button onclick="document.getElementById('file-decode').click()">📂 استخراج من صورة</button>
-  <button id="btn-reset">⟲ إعادة جلب من المصدر</button>
+  <button id="btn-reset">⟲ فرض التحديث الآن</button>
 </div>
 
 <script>
-// --- الرابط الذي قدمته أنت تم وضعه هنا بنجاح ---
-const EXTERNAL_GIST_URL = "https://gist.githubusercontent.com/tombad8900/f39ab59ef8ccc438c8bb62c5d3d7b6e2/raw/c1f63460f0be7021988d22dcf4dd6b04f0fc3665/Gist";
+// --- إعدادات الرابط الذكي (تم ضبطه على Gist الخاص بك) ---
+// استخدام رابط RAW المباشر بدون Hash لضمان جلب النسخة الأحدث
+const BASE_GIST_URL = "https://gist.githubusercontent.com/tombad8900/d76dd7549aec3ab48a1ed451c10ffb4d/raw/";
 
 const canvas = document.getElementById('view');
 const ctx = canvas.getContext('2d', { alpha: false });
@@ -267,22 +268,34 @@ function updateImage() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     Engine.embedPayload(txt);
-    statusDiv.textContent = "[عرش ∞ – HO-PU ACTIVE] تم التحديث والتضمين";
+    statusDiv.textContent = "[عرش ∞ – HO-PU ACTIVE] النواة مستقرة";
 }
 
+// --- نظام الجلب القسري (Anti-Cache System) ---
 async function fetchExternalPayload() {
+    statusDiv.textContent = "[عرش ∞] جاري الاتصال بالمصدر...";
+    
+    // إضافة رقم عشوائي (Timestamp) للرابط لإجبار المتصفح على جلب نسخة جديدة
+    const cacheBuster = "?t=" + new Date().getTime();
+    const finalUrl = BASE_GIST_URL + cacheBuster;
+
     try {
-        const response = await fetch(EXTERNAL_GIST_URL);
+        const response = await fetch(finalUrl, { cache: "no-store" });
         if (response.ok) {
             const text = await response.text();
-            payloadInput.value = text;
-            updateImage();
-            statusDiv.textContent = "[عرش ∞] تم جلب النص المتغير بنجاح";
+            if(text && text.trim().length > 0) {
+                payloadInput.value = text;
+                updateImage();
+                statusDiv.textContent = "[عرش ∞] تم استلام الأوامر الجديدة";
+            } else {
+                statusDiv.textContent = "[عرش ∞] المصدر فارغ، بقاء الوضع الحالي";
+            }
         } else {
-            statusDiv.textContent = "[عرش ∞] خطأ في المصدر الخارجي";
+            statusDiv.textContent = "[عرش ∞] خطأ في بروتوكول الاتصال";
         }
     } catch (err) {
-        statusDiv.textContent = "[عرش ∞] فشل الاتصال بالنواة";
+        console.error(err);
+        statusDiv.textContent = "[عرش ∞] تعذر الوصول للنواة (تحقق من الإنترنت)";
     }
 }
 
@@ -303,6 +316,8 @@ document.getElementById('btn-save').onclick = () => {
     link.click();
     statusDiv.textContent = "[عرش ∞] تم حفظ الصورة";
 };
+
+// زر إعادة التعيين الآن يقوم بفرض التحديث من Gist
 document.getElementById('btn-reset').onclick = fetchExternalPayload;
 
 document.getElementById('file-decode').onchange = (e) => {
@@ -318,9 +333,9 @@ document.getElementById('file-decode').onchange = (e) => {
             const extracted = Engine.extractPayload();
             if (extracted) {
                 payloadInput.value = extracted;
-                statusDiv.textContent = "[عرش ∞] تم فك التشفير بنجاح";
+                statusDiv.textContent = "[عرش ∞] تم فك التشفير";
                 renderText(extracted);
-            } else { statusDiv.textContent = "[عرش ∞] فشل الاستخراج"; }
+            } else { statusDiv.textContent = "[عرش ∞] لا توجد بيانات"; }
         };
         img.src = event.target.result;
     };
@@ -332,7 +347,7 @@ window.onresize = () => { updateImage(); };
 window.onload = () => {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    fetchExternalPayload();
+    fetchExternalPayload(); // بدء المزامنة فور التحميل
 };
 </script>
 </body>
