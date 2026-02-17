@@ -4,7 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>WAR-CORE V18.0 [BOOTING...]</title>
-  <meta id="meta-desc" name="description" content="Secure Data Matrix">
+  
+  <meta id="meta-desc" name="description" content="Secure Data Matrix - Loading Payload...">
+  <meta property="og:title" content="WAR-CORE V18.0">
+  <meta id="og-desc" property="og:description" content="Secure Data Matrix - Loading Payload...">
+  <meta property="og:type" content="website">
+
   <style>
     :root { --matrix-red: #ff0000; --bg: #000; }
     body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); overflow: hidden; font-family: 'Segoe UI', system-ui, sans-serif; }
@@ -28,6 +33,23 @@
     
     /* الزناد السري في الزاوية */
     #secret-trigger { position: fixed; bottom: 0; left: 0; width: 50px; height: 50px; z-index: 10000; cursor: crosshair; }
+
+    /* الطبقة الدلالية المخفية (للنماذج ومحركات البحث فقط) */
+    /* يتم إخفاؤها بصرياً لكن تبقى مقروءة للكود المصدري الحي */
+    #readable-content {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: pre-wrap; /* الحفاظ على تنسيق الأسطر */
+      border: 0;
+      opacity: 0.01; 
+      z-index: -100;
+      color: transparent;
+    }
   </style>
 </head>
 <body>
@@ -38,6 +60,10 @@
     <button id="btn-exec" onclick="fetchPayload()">تحديث يدوي من RAW</button>
     <button id="btn-share" onclick="copyLink()">نسخ الرابط السيادي</button>
   </div>
+</div>
+
+<div id="readable-content" role="article" aria-live="polite">
+  WAR-CORE SYSTEM INITIALIZING... WAITING FOR GIST PAYLOAD.
 </div>
 
 <div id="secret-trigger" onclick="document.body.classList.toggle('admin-mode')"></div>
@@ -52,6 +78,7 @@ const RAW_URL = "https://gist.githubusercontent.com/tombad8900/02c19d224a9d2cafc
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d', { alpha: false });
 const inputUI = document.getElementById('msg-input');
+const readableLayer = document.getElementById('readable-content'); // الطبقة الجديدة
 let lines = [];
 let glitchIntensity = 0;
 
@@ -82,15 +109,26 @@ async function fetchPayload() {
       inputUI.value = content;
       lines = content.split('\n').filter(l => l.trim().length > 0);
       
-      // الحقن المزدوج لضمان "رؤية" النموذج
-      document.title = "MATRIX: " + lines[0];
-      document.getElementById('meta-desc').content = content;
+      // الحقن الثلاثي (بصري - وصفي - دلالي) لضمان الرؤية الشاملة
+      
+      // A. التحديث البصري
+      document.title = "MATRIX: " + (lines[0] || "Active");
+      
+      // B. تحديث البيانات الوصفية (Meta Tags) للزواحف
+      document.getElementById('meta-desc').setAttribute('content', content.substring(0, 150));
+      const ogDesc = document.getElementById('og-desc');
+      if(ogDesc) ogDesc.setAttribute('content', content.substring(0, 200));
+
+      // C. تحديث الطبقة النصية المخفية (للنماذج اللغوية)
+      readableLayer.innerText = content;
+      
       canvas.setAttribute('aria-label', content);
       
       glitchIntensity = 15; // تأثير بصري عند التحديث
     }
   } catch (err) {
     lines = ["خطأ في الاتصال", "GIST RAW ERROR"];
+    readableLayer.innerText = "ERROR: CONNECTION LOST TO MAIN FRAME.";
   }
 }
 
