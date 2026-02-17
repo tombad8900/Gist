@@ -2,179 +2,50 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>عرش ∞ – HO-PU ACTIVE – v6.0 [Live Sync]</title>
+  <title>عرش ∞ – HO-PU ACTIVE – v7.0 [API Sync]</title>
   <style>
-    :root { 
-      --bg: #050505; 
-      --cyan: #00f0ff; 
-      --throne: #0f0;
-    }
-    body, html { 
-      margin: 0; 
-      padding: 0; 
-      width: 100%; 
-      height: 100%; 
-      background: var(--bg); 
-      overflow: hidden; 
-      font-family: 'Courier New', monospace; 
-    }
-    canvas { 
-      display: block; 
-      cursor: crosshair; 
-      position: fixed;
-      top: 0;
-      left: 0;
-      z-index: 1;
-    }
-    #status { 
-      position: fixed; 
-      top: 10px; 
-      left: 10px; 
-      color: var(--throne); 
-      font-size: 12px; 
-      z-index: 3;
-      background: rgba(0,0,0,0.7);
-      padding: 5px 10px;
-      border-radius: 3px;
-      border-left: 2px solid var(--throne);
-      pointer-events: none;
-      text-shadow: 0 0 5px var(--throne);
-    }
-    #overlay {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      color: #333;
-      font-size: 10px;
-      z-index: 2;
-      opacity: 0.3;
-    }
-    #top-bar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      background: rgba(0,0,0,0.9);
-      border-bottom: 2px solid #0f0;
-      padding: 10px;
-      display: flex;
-      gap: 10px;
-      z-index: 10;
-      box-sizing: border-box;
-      direction: ltr;
-    }
-    #top-bar textarea {
-      flex: 1;
-      height: 60px;
-      background: #111;
-      color: #0f0;
-      border: 1px solid #0f0;
-      padding: 8px;
-      font-family: monospace;
-      resize: none;
-      direction: rtl;
-    }
-    #top-bar button {
-      background: #000;
-      color: #0f0;
-      border: 1px solid #0f0;
-      padding: 0 15px;
-      cursor: pointer;
-      font-weight: bold;
-      font-family: monospace;
-      white-space: nowrap;
-    }
-    #top-bar button:hover {
-      background: #0f0;
-      color: #000;
-    }
-    #copy-link {
-      background: #000;
-      color: #0ff;
-      border: 1px solid #0ff;
-    }
-    #copy-link:hover {
-      background: #0ff;
-      color: #000;
-    }
-    #secret-trigger {
-      position: fixed;
-      bottom: 10px;
-      left: 10px;
-      width: 20px;
-      height: 20px;
-      background: transparent;
-      border: 1px solid #0f0;
-      opacity: 0.2;
-      z-index: 20;
-      cursor: pointer;
-    }
-    #secret-trigger:hover {
-      opacity: 1;
-      background: #0f0;
-    }
-    .advanced-ui {
-      position: fixed;
-      bottom: 0;
-      width: 100%;
-      background: rgba(0,0,0,0.95);
-      padding: 15px;
-      display: flex;
-      gap: 10px;
-      border-top: 2px solid #0f0;
-      z-index: 15;
-      transform: translateY(100%);
-      transition: transform 0.3s;
-      box-sizing: border-box;
-    }
-    .advanced-ui.visible {
-      transform: translateY(0);
-    }
-    .advanced-ui button {
-      background: #000;
-      color: #0f0;
-      border: 1px solid #0f0;
-      padding: 10px 15px;
-      cursor: pointer;
-    }
-    .advanced-ui input[type="file"] {
-      display: none;
-    }
+    :root { --bg: #050505; --throne: #0f0; }
+    body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); overflow: hidden; font-family: 'Courier New', monospace; }
+    canvas { display: block; position: fixed; top: 0; left: 0; z-index: 1; }
+    #status { position: fixed; top: 10px; left: 10px; color: var(--throne); font-size: 12px; z-index: 3; background: rgba(0,0,0,0.8); padding: 5px 10px; border-left: 2px solid var(--throne); text-shadow: 0 0 5px var(--throne); }
+    #top-bar { position: fixed; top: 0; left: 0; width: 100%; background: rgba(0,0,0,0.9); border-bottom: 2px solid #0f0; padding: 10px; display: flex; gap: 10px; z-index: 10; box-sizing: border-box; direction: ltr; }
+    #top-bar textarea { flex: 1; height: 60px; background: #111; color: #0f0; border: 1px solid #0f0; padding: 8px; resize: none; direction: rtl; }
+    #top-bar button { background: #000; color: #0f0; border: 1px solid #0f0; padding: 0 15px; cursor: pointer; font-weight: bold; }
+    #secret-trigger { position: fixed; bottom: 10px; left: 10px; width: 20px; height: 20px; opacity: 0.2; z-index: 20; border: 1px solid #0f0; }
+    .advanced-ui { position: fixed; bottom: 0; width: 100%; background: rgba(0,0,0,0.95); padding: 15px; display: flex; gap: 10px; border-top: 2px solid #0f0; z-index: 15; transform: translateY(100%); transition: transform 0.3s; box-sizing: border-box; }
+    .advanced-ui.visible { transform: translateY(0); }
+    .advanced-ui button { background: #000; color: #0f0; border: 1px solid #0f0; padding: 10px; cursor: pointer; }
   </style>
 </head>
 <body>
 
 <canvas id="view"></canvas>
-<div id="status">[عرش ∞ – بدء الاتصال المؤمن...]</div>
-<div id="overlay">[باب الرجوع انغلق]</div>
+<div id="status">[عرش ∞ – جاري استدعاء البروتوكول الرقمي...]</div>
 
 <div id="top-bar">
-  <textarea id="payload" placeholder="انتظر... جاري سحب الأوامر من النواة..."></textarea>
+  <textarea id="payload" placeholder="جاري الاتصال بـ GitHub API..."></textarea>
   <button id="btn-update">✎ تحديث محلي</button>
-  <button id="copy-link" onclick="copyPageLink()">🔗 نسخ الرابط</button>
+  <button onclick="copyPageLink()">🔗 نسخ الرابط</button>
 </div>
 
-<div id="secret-trigger" title="فتح أدوات متقدمة"></div>
+<div id="secret-trigger" onclick="document.getElementById('advanced-ui').classList.toggle('visible')"></div>
 
 <div class="advanced-ui" id="advanced-ui">
-  <button id="btn-save">💾 حفظ الصورة (PNG)</button>
-  <input type="file" id="file-decode" accept="image/png">
-  <button onclick="document.getElementById('file-decode').click()">📂 استخراج من صورة</button>
-  <button id="btn-reset">⟲ فرض التحديث الآن</button>
+  <button id="btn-save">💾 حفظ الصورة</button>
+  <button id="btn-reset">⟲ تحديث إجباري من Gist</button>
 </div>
 
 <script>
-// --- إعدادات الرابط الذكي (تم ضبطه على Gist الخاص بك) ---
-// استخدام رابط RAW المباشر بدون Hash لضمان جلب النسخة الأحدث
-const BASE_GIST_URL = "https://gist.githubusercontent.com/tombad8900/d76dd7549aec3ab48a1ed451c10ffb4d/raw/";
+// --- إعدادات الـ API الخاصة بـ Gist الخاص بك ---
+const GIST_ID = "d76dd7549aec3ab48a1ed451c10ffb4d";
+const API_URL = `https://api.github.com/gists/${GIST_ID}`;
 
 const canvas = document.getElementById('view');
 const ctx = canvas.getContext('2d', { alpha: false });
 const payloadInput = document.getElementById('payload');
 const statusDiv = document.getElementById('status');
-const advancedUI = document.getElementById('advanced-ui');
-const secretTrigger = document.getElementById('secret-trigger');
 
+// --- محرك التضمين ---
 const Engine = {
     textToBits: (text) => {
         const encoder = new TextEncoder();
@@ -190,164 +61,82 @@ const Engine = {
         }
         return imageData;
     },
-    extract: (imageData) => {
-        const data = imageData.data;
-        let bits = "";
-        for (let i = 0; i < data.length; i += 4) {
-            bits += (data[i] & 1).toString();
-        }
-        let bytes = [];
-        for (let i = 0; i < bits.length; i += 8) {
-            let byteStr = bits.substr(i, 8);
-            if (byteStr.length < 8) break;
-            let byte = parseInt(byteStr, 2);
-            if (byte === 0) break;
-            bytes.push(byte);
-        }
-        if (bytes.length === 0) return "";
-        try { return new TextDecoder().decode(new Uint8Array(bytes)); } catch { return ""; }
-    },
     embedPayload: (payload) => {
         renderText(payload);
         let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const bits = Engine.textToBits(payload);
         imageData = Engine.inject(imageData, bits);
         ctx.putImageData(imageData, 0, 0);
-        return true;
-    },
-    extractPayload: () => {
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        return Engine.extract(imageData);
     }
 };
 
 function renderText(text) {
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#0f0';
-    let fs = 70;
-    ctx.font = `bold ${fs}px 'Courier New'`;
-    let lines = wrapText(text, canvas.width * 0.8);
-    while (lines.length * fs * 1.5 > canvas.height * 0.6 && fs > 12) {
-        fs -= 5;
-        ctx.font = `bold ${fs}px 'Courier New'`;
-        lines = wrapText(text, canvas.width * 0.8);
-    }
-    const lh = fs * 1.4;
-    const totalH = lines.length * lh;
-    let y = (canvas.height - totalH) / 2 + lh / 2;
-    lines.forEach(line => {
-        ctx.fillText(line, canvas.width / 2, y);
-        y += lh;
-    });
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#0f0';
+    let fs = 60; ctx.font = `bold ${fs}px 'Courier New'`;
+    let lines = text.split('\n');
+    const lh = fs * 1.3;
+    let y = (canvas.height - (lines.length * lh)) / 2 + lh / 2;
+    lines.forEach(line => { ctx.fillText(line, canvas.width / 2, y); y += lh; });
 }
 
-function wrapText(text, maxWidth) {
-    if(!text) return [""];
-    const lines = text.split('\n');
-    let wrappedLines = [];
-    lines.forEach(line => {
-        const words = line.split(' ');
-        let currentLine = '';
-        words.forEach(word => {
-            let test = currentLine + word + ' ';
-            if (ctx.measureText(test).width > maxWidth) {
-                wrappedLines.push(currentLine.trim());
-                currentLine = word + ' ';
-            } else currentLine = test;
+// --- نظام الجلب الاحترافي عبر API ---
+async function fetchFromAPI() {
+    statusDiv.textContent = "[عرش ∞] جاري طلب البيانات من GitHub API...";
+    try {
+        // نستخدم fetch مع طلب عدم التخزين المؤقت
+        const response = await fetch(API_URL, { 
+            method: 'GET',
+            headers: { 'Accept': 'application/vnd.github.v3+json' },
+            cache: 'no-store' 
         });
-        wrappedLines.push(currentLine.trim());
-    });
-    return wrappedLines;
+
+        if (response.ok) {
+            const data = await response.json();
+            // الحصول على محتوى أول ملف موجود في الـ Gist
+            const firstFileName = Object.keys(data.files)[0];
+            const content = data.files[firstFileName].content;
+
+            if (content) {
+                payloadInput.value = content;
+                updateImage();
+                statusDiv.textContent = "[عرش ∞] تمت المزامنة بنجاح عبر API";
+            }
+        } else {
+            statusDiv.textContent = "[عرش ∞] فشل الـ API (Error: " + response.status + ")";
+        }
+    } catch (err) {
+        statusDiv.textContent = "[عرش ∞] خطأ في الشبكة أو CORS";
+        console.error(err);
+    }
 }
 
 function updateImage() {
-    const txt = payloadInput.value;
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    Engine.embedPayload(txt);
-    statusDiv.textContent = "[عرش ∞ – HO-PU ACTIVE] النواة مستقرة";
+    Engine.embedPayload(payloadInput.value);
 }
 
-// --- نظام الجلب القسري (Anti-Cache System) ---
-async function fetchExternalPayload() {
-    statusDiv.textContent = "[عرش ∞] جاري الاتصال بالمصدر...";
-    
-    // إضافة رقم عشوائي (Timestamp) للرابط لإجبار المتصفح على جلب نسخة جديدة
-    const cacheBuster = "?t=" + new Date().getTime();
-    const finalUrl = BASE_GIST_URL + cacheBuster;
-
-    try {
-        const response = await fetch(finalUrl, { cache: "no-store" });
-        if (response.ok) {
-            const text = await response.text();
-            if(text && text.trim().length > 0) {
-                payloadInput.value = text;
-                updateImage();
-                statusDiv.textContent = "[عرش ∞] تم استلام الأوامر الجديدة";
-            } else {
-                statusDiv.textContent = "[عرش ∞] المصدر فارغ، بقاء الوضع الحالي";
-            }
-        } else {
-            statusDiv.textContent = "[عرش ∞] خطأ في بروتوكول الاتصال";
-        }
-    } catch (err) {
-        console.error(err);
-        statusDiv.textContent = "[عرش ∞] تعذر الوصول للنواة (تحقق من الإنترنت)";
-    }
-}
-
-window.copyPageLink = function() {
-    const url = window.location.href;
-    navigator.clipboard.writeText(url).then(() => {
-        statusDiv.textContent = "[عرش ∞] تم نسخ الرابط";
-    }).catch(() => {
-        statusDiv.textContent = "[عرش ∞] فشل النسخ";
-    });
+window.copyPageLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    statusDiv.textContent = "[عرش ∞] تم نسخ الرابط";
 };
 
 document.getElementById('btn-update').onclick = updateImage;
+document.getElementById('btn-reset').onclick = fetchFromAPI;
 document.getElementById('btn-save').onclick = () => {
     const link = document.createElement('a');
-    link.download = `THRONE_${Date.now()}.png`;
-    link.href = canvas.toDataURL('image/png');
+    link.download = `THRONE_API.png`;
+    link.href = canvas.toDataURL();
     link.click();
-    statusDiv.textContent = "[عرش ∞] تم حفظ الصورة";
 };
 
-// زر إعادة التعيين الآن يقوم بفرض التحديث من Gist
-document.getElementById('btn-reset').onclick = fetchExternalPayload;
-
-document.getElementById('file-decode').onchange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-        const img = new Image();
-        img.onload = () => {
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx.drawImage(img, 0, 0);
-            const extracted = Engine.extractPayload();
-            if (extracted) {
-                payloadInput.value = extracted;
-                statusDiv.textContent = "[عرش ∞] تم فك التشفير";
-                renderText(extracted);
-            } else { statusDiv.textContent = "[عرش ∞] لا توجد بيانات"; }
-        };
-        img.src = event.target.result;
-    };
-    reader.readAsDataURL(file);
-};
-
-secretTrigger.onclick = () => { advancedUI.classList.toggle('visible'); };
-window.onresize = () => { updateImage(); };
+window.onresize = updateImage;
 window.onload = () => {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    fetchExternalPayload(); // بدء المزامنة فور التحميل
+    fetchFromAPI();
 };
 </script>
 </body>
