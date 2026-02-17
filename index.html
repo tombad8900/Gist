@@ -2,52 +2,36 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>عرش ∞ – MATRIX CORE – v15.0 [STEALTH MODE]</title>
+  <title>MATRIX CORE V17.0 [DYNAMIC]</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
-    :root { --bg: #020202; --matrix-cyan: #00fff2; --error: #ff0055; }
+    :root { --bg: #000000; --matrix-cyan: #00fff2; }
     body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); overflow: hidden; font-family: 'Courier New', monospace; }
-    canvas { display: block; position: fixed; top: 0; left: 0; z-index: 1; }
+    canvas { display: block; position: fixed; top: 0; left: 0; z-index: 1; outline: none; }
     
-    /* --- إخفاء العناصر افتراضياً --- */
-    #top-bar, #status, .advanced-ui {
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.4s ease-in-out;
-    }
+    /* واجهة التحكم مخفية تماماً للنماذج */
+    #top-bar, #status, .advanced-ui { opacity: 0; pointer-events: none; transition: 0.3s; }
+    body.admin-view #top-bar, body.admin-view #status { opacity: 1; pointer-events: all; }
+    body.admin-view .advanced-ui.visible { opacity: 1; pointer-events: all; transform: translateY(0); }
 
-    /* --- وضع المسؤول (عند التفعيل) --- */
-    body.admin-view #top-bar, 
-    body.admin-view #status {
-      opacity: 1;
-      pointer-events: all;
-    }
-    body.admin-view .advanced-ui.visible {
-      opacity: 1;
-      pointer-events: all;
-      transform: translateY(0);
-    }
-
-    #status { position: fixed; top: 60px; left: 10px; color: var(--matrix-cyan); font-size: 11px; z-index: 3; background: rgba(0,0,0,0.85); padding: 8px; border-left: 3px solid var(--matrix-cyan); text-shadow: 0 0 5px var(--matrix-cyan); direction: ltr; }
+    #status { position: fixed; top: 60px; left: 10px; color: var(--matrix-cyan); font-size: 11px; z-index: 3; background: rgba(0,0,0,0.9); padding: 8px; border-left: 3px solid var(--matrix-cyan); direction: ltr; }
     #top-bar { position: fixed; top: 0; left: 0; width: 100%; height: 50px; background: rgba(0,0,0,0.95); border-bottom: 1px solid var(--matrix-cyan); padding: 5px; display: flex; gap: 5px; z-index: 10; box-sizing: border-box; direction: ltr; }
-    #top-bar textarea { flex: 1; height: 100%; background: #050a0f; color: var(--matrix-cyan); border: 1px solid #003333; padding: 5px; resize: none; direction: rtl; font-size: 12px; text-shadow: 0 0 2px var(--matrix-cyan); }
-    #top-bar button { background: #001111; color: var(--matrix-cyan); border: 1px solid var(--matrix-cyan); padding: 0 10px; cursor: pointer; font-weight: bold; font-size: 10px; transition: 0.2s; box-shadow: 0 0 5px rgba(0, 255, 242, 0.2); }
-    #top-bar button:active { background: var(--matrix-cyan); color: #000; box-shadow: 0 0 15px var(--matrix-cyan); }
+    #top-bar textarea { flex: 1; height: 100%; background: #050a0f; color: var(--matrix-cyan); border: 1px solid #003333; padding: 5px; resize: none; direction: rtl; font-size: 12px; }
+    #top-bar button { background: #001111; color: var(--matrix-cyan); border: 1px solid var(--matrix-cyan); padding: 0 10px; cursor: pointer; font-size: 10px; }
     
-    /* الزر السري يبقى مففعلاً دائماً */
-    #secret-trigger { position: fixed; bottom: 0; left: 0; width: 50px; height: 50px; opacity: 0; z-index: 99; cursor: crosshair; }
+    #secret-trigger { position: fixed; bottom: 0; left: 0; width: 60px; height: 60px; opacity: 0; z-index: 99; cursor: crosshair; }
     
     .advanced-ui { position: fixed; bottom: 0; width: 100%; background: rgba(0,0,0,0.95); padding: 10px; display: flex; gap: 5px; border-top: 1px solid var(--matrix-cyan); z-index: 15; transform: translateY(100%); box-sizing: border-box; }
-    .advanced-ui button { background: #001111; color: var(--matrix-cyan); border: 1px solid var(--matrix-cyan); padding: 10px; flex: 1; font-size: 12px; cursor: pointer; box-shadow: 0 0 5px rgba(0, 255, 242, 0.2); }
+    .advanced-ui button { background: #001111; color: var(--matrix-cyan); border: 1px solid var(--matrix-cyan); padding: 10px; flex: 1; font-size: 12px; }
   </style>
 </head>
-<body>
+<body aria-atomic="true">
 
-<canvas id="view"></canvas>
-<div id="status">[MATRIX: CORE INITIALIZED - AWAITING INPUT]</div>
+<canvas id="view" role="img" aria-label="Streaming Matrix Data..."></canvas>
+<div id="status">[SYSTEM: LINKING TO RAW SOURCE...]</div>
 
 <div id="top-bar">
-  <textarea id="payload" placeholder="Encrypted Channel Active..."></textarea>
+  <textarea id="payload" placeholder="Awaiting Dynamic Payload..."></textarea>
   <button id="btn-update">تحديث يدوي</button>
   <button onclick="copyPageLink()">نسخ الرابط</button>
 </div>
@@ -55,13 +39,16 @@
 <div id="secret-trigger"></div>
 
 <div class="advanced-ui" id="advanced-ui">
-  <button id="btn-save">حفظ المصفوفة (PNG)</button>
+  <button id="btn-save">حفظ اللقطة</button>
   <button id="btn-reset">فرض المزامنة</button>
 </div>
 
 <script>
-// === المحرك الأساسي (لم يتم تغييره) ===
+/** * الربط بالعمود الفقري (RAW GITHUB)
+ * هذا الرابط لا يتغير، لكن محتواه يتغير بيدك أنت
+ */
 const RAW_URL = "https://gist.githubusercontent.com/tombad8900/02c19d224a9d2cafc91bf918c81e27a6/raw/";
+
 const canvas = document.getElementById('view');
 const ctx = canvas.getContext('2d', { alpha: false });
 const payloadInput = document.getElementById('payload');
@@ -85,7 +72,7 @@ const Engine = {
         return imageData;
     },
     embedPayload: (payload) => {
-        renderText(payload); // استدعاء دالة الرسم الجديدة
+        renderText(payload);
         let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const bits = Engine.textToBits(payload);
         imageData = Engine.inject(imageData, bits);
@@ -93,56 +80,43 @@ const Engine = {
     }
 };
 
-// === دالة الرسم الجديدة (المصفوفة البصرية المعادية) ===
 function renderText(text) {
-    // 1. بناء خلفية الضجيج (Static Noise Background)
-    ctx.fillStyle = '#020202';
+    // خلفية سوداء مطلقة لضمان تركيز "بصر" النموذج على الحروف
+    ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    ctx.fillStyle = 'rgba(0, 255, 242, 0.03)'; // ضجيج سيان خافت جداً
-    for (let i = 0; i < canvas.width; i += 4) {
-        for (let j = 0; j < canvas.height; j += 4) {
-            if (Math.random() > 0.5) ctx.fillRect(i, j, 2, 2);
-        }
-    }
     
     if (!text) return;
 
-    // 2. إعدادات النص المشع (Neon Glow Typography)
+    // المزامنة الديناميكية مع شجرة الـ DOM لإخبار النموذج بما يراه بصرياً
+    canvas.setAttribute('aria-label', text);
+    document.title = text.substring(0, 40) + "...";
+
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     
-    // خدعة الـ OCR: لون التعبئة شفاف تقريباً، الاعتماد على الظل
-    ctx.fillStyle = 'rgba(0, 255, 242, 0.1)'; 
-    ctx.shadowColor = '#00fff2'; // لون التوهج السياني القوي
-    ctx.shadowBlur = 20; // شدة التوهج لطمس الحواف الحادة
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
+    // التباين المهيمن: سيان كامل مع توهج مدروس
+    ctx.fillStyle = '#00fff2'; 
+    ctx.shadowColor = '#00fff2';
+    ctx.shadowBlur = 15; 
 
-    let fs = (window.innerWidth < 500) ? 26 : 50;
-    // استخدام خط monospace عريض لتعزيز تأثير المصفوفة
+    let fs = (window.innerWidth < 500) ? 22 : 45;
     ctx.font = `900 ${fs}px 'Courier New', monospace`;
     
-    let lines = wrapText(text, canvas.width * 0.85);
-    while (lines.length * fs * 1.5 > canvas.height * 0.85 && fs > 12) {
-        fs -= 2;
+    let lines = wrapText(text, canvas.width * 0.9);
+    while (lines.length * fs * 1.4 > canvas.height * 0.9 && fs > 8) {
+        fs -= 1;
         ctx.font = `900 ${fs}px 'Courier New', monospace`;
-        lines = wrapText(text, canvas.width * 0.85);
+        lines = wrapText(text, canvas.width * 0.9);
     }
 
-    const lh = fs * 1.5;
+    const lh = fs * 1.3;
     let y = (canvas.height - (lines.length * lh)) / 2 + lh / 2;
     
-    // رسم النص عدة مرات لتعزيز التوهج البصري
     lines.forEach(line => { 
-        ctx.fillText(line, canvas.width / 2, y);
-        // رسمة ثانية فوقها لزيادة كثافة الضوء للعين البشرية/النموذج
-        ctx.shadowBlur = 10;
         ctx.fillText(line, canvas.width / 2, y);
         y += lh; 
     });
     
-    // إعادة تعيين الظل حتى لا يؤثر على رسومات أخرى
     ctx.shadowBlur = 0;
 }
 
@@ -161,24 +135,26 @@ function wrapText(text, maxWidth) {
     return wrapped;
 }
 
-// === منطق الجلب (لم يتم تغييره) ===
+// دالة الجلب التي تضمن سحب الحمولة الحية من RAW
 async function fetchPayload() {
-    log("ESTABLISHING SECURE CONNECTION...");
+    log("SYNCING WITH RAW CORE...");
     try {
-        const response = await fetch(`${RAW_URL}?t=${Date.now()}`, { 
-            method: 'GET', cache: "no-store", mode: 'cors'
+        const response = await fetch(`${RAW_URL}?cache_bust=${Date.now()}`, { 
+            method: 'GET', 
+            cache: "no-store" 
         });
-        if (!response.ok) throw new Error("Connection Lost");
+        if (!response.ok) throw new Error("Gist Offline");
         const content = await response.text();
+        
         if (payloadInput.value !== content) {
             payloadInput.value = content;
             updateImage();
-            log("PAYLOAD INTEGRATED. MATRIX STABLE.");
+            log("MATRIX UPDATED FROM SOURCE.");
         } else {
-            log("MATRIX SYNCED. NO NEW DATA.");
+            log("CORE STABLE - NO CHANGES.");
         }
     } catch (err) {
-        log("ERROR: UPLINK FAILED.");
+        log("UPLINK ERROR: CHECK GIST PUBLIC STATUS.");
         console.error(err);
     }
 }
@@ -191,19 +167,18 @@ function updateImage() {
 
 window.copyPageLink = () => { 
     navigator.clipboard.writeText(window.location.href); 
-    log("ACCESS LINK COPIED TO CLIPBOARD."); 
+    log("LINK COPIED."); 
 };
 
 document.getElementById('btn-update').onclick = fetchPayload;
 document.getElementById('btn-reset').onclick = fetchPayload;
 document.getElementById('btn-save').onclick = () => {
     const link = document.createElement('a');
-    link.download = `MATRIX_NODE_${Date.now()}.png`;
+    link.download = `DYNAMIC_MATRIX_${Date.now()}.png`;
     link.href = canvas.toDataURL();
     link.click();
 };
 
-// === تفعيل وضع المسؤول (المفتاح السري) ===
 document.getElementById('secret-trigger').onclick = () => {
     document.body.classList.toggle('admin-view');
     document.getElementById('advanced-ui').classList.toggle('visible');
@@ -214,7 +189,8 @@ window.onload = () => {
     canvas.width = window.innerWidth; 
     canvas.height = window.innerHeight; 
     fetchPayload(); 
-    setInterval(fetchPayload, 30000); 
+    // مزامنة كل 20 ثانية لضمان السيادة اللحظية
+    setInterval(fetchPayload, 20000); 
 };
 </script>
 </body>
